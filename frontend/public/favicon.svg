@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0ea5e9"/>
+      <stop offset="50%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+  </defs>
+  <!-- Background rounded square -->
+  <rect width="64" height="64" rx="14" fill="url(#bg)"/>
+  <!-- Glass sheen -->
+  <rect width="64" height="32" rx="14" fill="white" opacity="0.12"/>
+  <!-- Shield outline -->
+  <path d="M32 8 L50 18 L50 34 C50 44 42 52 32 56 C22 52 14 44 14 34 L14 18 Z"
+        fill="rgba(255,255,255,0.1)"
+        stroke="rgba(255,255,255,0.65)"
+        stroke-width="1.8"
+        stroke-linejoin="round"/>
+  <!-- Audio waveform bars -->
+  <rect x="22" y="29" width="3" height="6" rx="1.5" fill="white" opacity="0.8"/>
+  <rect x="27" y="25" width="3" height="14" rx="1.5" fill="white" opacity="0.9"/>
+  <rect x="32" y="21" width="3" height="22" rx="1.5" fill="white"/>
+  <rect x="37" y="24" width="3" height="16" rx="1.5" fill="white" opacity="0.9"/>
+  <rect x="42" y="28" width="3" height="8" rx="1.5" fill="white" opacity="0.8"/>
+</svg>

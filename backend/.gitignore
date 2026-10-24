@@ -1,0 +1,35 @@
+# ========================
+# Node.js defaults
+# ========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ========================
+# Environment files
+# (never commit secrets)
+# ========================
+.env
+.env.local
+.env.production
+
+# ========================
+# Upload & Log directories
+# (runtime-generated, not source)
+# ========================
+uploads/
+logs/
+
+# ========================
+# OS / Editor junk
+# ========================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ========================
+# Test coverage
+# ========================
+coverage/

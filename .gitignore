@@ -1,0 +1,51 @@
+
+# DeepFake Audio Analyzer
+
+# Environment secrets
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Dataset and training data
+dataset/
+backend/ml/dataset/
+backend/ml/models/*.npz
+
+# User uploads and generated reports
+backend/uploads/
+backend/reports/
+
+# Python environments and cache
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+*.pkl.bak
+
+# Node.js dependencies and build output
+**/node_modules/
+frontend/dist/
+
+# Optional candidate model artifacts
+backend/ml/models/candidate_model.pkl
+backend/ml/models/candidate_metadata.json
+
+# Local databases and database dumps
+*.db
+*.sqlite
+*.sqlite3
+*.sql
+*.dump
+
+# Logs and operating system files
+*.log
+.DS_Store
+Thumbs.db
+
+# Exported chat/UI assets - not project source
+Deepfake Audio Analyzer_files/

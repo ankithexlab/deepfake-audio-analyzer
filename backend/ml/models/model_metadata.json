@@ -1,0 +1,30 @@
+{
+  "modelName": "EnsembleNeuralDeepfakeDetector",
+  "modelVersion": "1.0.0",
+  "modelType": "ensemble_rf_et_mlp",
+  "featureCount": 170,
+  "featureGroups": [
+    "mfcc",
+    "chroma",
+    "spectralContrast",
+    "zeroCrossingRate",
+    "rmsEnergy",
+    "spectralCentroid"
+  ],
+  "metrics": {
+    "accuracy": 0.73,
+    "precision": 0.7347,
+    "recall": 0.72,
+    "f1Score": 0.7273,
+    "rocAuc": 0.779,
+    "confusionMatrix": {
+      "trueNegatives": 111,
+      "falsePositives": 39,
+      "falseNegatives": 42,
+      "truePositives": 108
+    }
+  },
+  "trainingSamples": 1198,
+  "testSamples": 300,
+  "trainedAt": "2026-10-08 06:49:14 UTC"
+}

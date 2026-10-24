@@ -1,0 +1,17 @@
+{
+  "watch": [
+    "src/",
+    "server.js"
+  ],
+  "ignore": [
+    "uploads/",
+    "logs/",
+    "ml/models/",
+    "*.log",
+    "*.wav",
+    "*.mp3",
+    "*.json",
+    "*.png"
+  ],
+  "ext": "js,mjs,cjs"
+}
