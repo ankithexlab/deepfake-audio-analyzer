@@ -2,7 +2,9 @@
  * db.config.js
  * ─────────────────────────────────────────────────────────────
  * PostgreSQL Database Connection & Auto-Migration Module.
- * Member 2: Backend & Database (Ashu)
+ * Supports:
+ *   - Neon PostgreSQL (Production)
+ *   - Local PostgreSQL (Development)
  * ─────────────────────────────────────────────────────────────
  */
 
@@ -10,36 +12,81 @@ const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
 const logger = require('../utils/logger');
 
+// ============================================================
+// PostgreSQL Connection Configuration
+// ============================================================
+
+const isProductionDatabase = Boolean(process.env.DATABASE_URL);
+
 const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT, 10) || 5432,
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || 'admin',
-  database: process.env.DB_NAME || 'deepfake_db',
-  max: 20,
+  // Production: Neon connection string
+  connectionString: process.env.DATABASE_URL || undefined,
+
+  // Local development fallback
+  host: isProductionDatabase
+    ? undefined
+    : (process.env.DB_HOST || 'localhost'),
+
+  port: isProductionDatabase
+    ? undefined
+    : (parseInt(process.env.DB_PORT, 10) || 5432),
+
+  user: isProductionDatabase
+    ? undefined
+    : (process.env.DB_USER || 'postgres'),
+
+  password: isProductionDatabase
+    ? undefined
+    : (process.env.DB_PASSWORD || 'admin'),
+
+  database: isProductionDatabase
+    ? undefined
+    : (process.env.DB_NAME || 'deepfake_db'),
+
+  // Neon requires SSL connections
+  ssl: isProductionDatabase
+    ? { rejectUnauthorized: false }
+    : undefined,
+
+  max: 10,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
+  connectionTimeoutMillis: 10000,
 });
+
+// ============================================================
+// Connection Error Handling
+// ============================================================
 
 pool.on('error', (err) => {
-  logger.error('Unexpected error on idle PostgreSQL client', { err: err.message });
+  logger.error('Unexpected error on idle PostgreSQL client', {
+    error: err.message,
+  });
 });
 
-/**
- * Initializes tables in PostgreSQL if they do not exist yet.
- * Tables:
- *   1. users
- *   2. audio_files
- *   3. predictions
- *   4. reports
- *   5. audit_logs
- */
+// ============================================================
+// Database Initialization & Auto-Migration
+// ============================================================
+
 async function initDatabase() {
-  const client = await pool.connect();
+  let client;
+
   try {
     logger.info('Connecting to PostgreSQL database...');
 
+    client = await pool.connect();
+
+    // Verify database connection
+    await client.query('SELECT NOW()');
+
+    logger.info('PostgreSQL connection established successfully.');
+
+    // --------------------------------------------------------
+    // Create Tables
+    // --------------------------------------------------------
+
     await client.query(`
+      CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
       -- 1. Users Table
       CREATE TABLE IF NOT EXISTS users (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -70,7 +117,8 @@ async function initDatabase() {
       -- 3. Predictions Table
       CREATE TABLE IF NOT EXISTS predictions (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        file_id VARCHAR(100) REFERENCES audio_files(id) ON DELETE CASCADE,
+        file_id VARCHAR(100)
+          REFERENCES audio_files(id) ON DELETE CASCADE,
         user_id UUID REFERENCES users(id) ON DELETE SET NULL,
         is_deepfake BOOLEAN NOT NULL,
         label VARCHAR(50) NOT NULL,
@@ -90,8 +138,10 @@ async function initDatabase() {
       -- 4. Reports Table
       CREATE TABLE IF NOT EXISTS reports (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        file_id VARCHAR(100) REFERENCES audio_files(id) ON DELETE CASCADE,
-        prediction_id UUID REFERENCES predictions(id) ON DELETE CASCADE,
+        file_id VARCHAR(100)
+          REFERENCES audio_files(id) ON DELETE CASCADE,
+        prediction_id UUID
+          REFERENCES predictions(id) ON DELETE CASCADE,
         user_id UUID REFERENCES users(id) ON DELETE SET NULL,
         report_title VARCHAR(255) NOT NULL,
         report_data JSONB NOT NULL,
@@ -109,7 +159,7 @@ async function initDatabase() {
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
 
-      -- 6. Dataset Files Table (Metadata for 6000 WAV files)
+      -- 6. Dataset Files Table
       CREATE TABLE IF NOT EXISTS dataset_files (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         filename VARCHAR(255) NOT NULL,
@@ -124,45 +174,98 @@ async function initDatabase() {
       );
     `);
 
-    // Create indexes for fast querying
+    // --------------------------------------------------------
+    // Create Indexes
+    // --------------------------------------------------------
+
     await client.query(`
-      CREATE INDEX IF NOT EXISTS idx_audio_files_user_id ON audio_files(user_id);
-      CREATE INDEX IF NOT EXISTS idx_audio_files_created_at ON audio_files(created_at DESC);
-      CREATE INDEX IF NOT EXISTS idx_predictions_file_id ON predictions(file_id);
-      CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at DESC);
-      CREATE INDEX IF NOT EXISTS idx_dataset_files_label ON dataset_files(label);
-      CREATE INDEX IF NOT EXISTS idx_dataset_files_category ON dataset_files(category);
+      CREATE INDEX IF NOT EXISTS idx_audio_files_user_id
+        ON audio_files(user_id);
+
+      CREATE INDEX IF NOT EXISTS idx_audio_files_created_at
+        ON audio_files(created_at DESC);
+
+      CREATE INDEX IF NOT EXISTS idx_predictions_file_id
+        ON predictions(file_id);
+
+      CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at
+        ON audit_logs(created_at DESC);
+
+      CREATE INDEX IF NOT EXISTS idx_dataset_files_label
+        ON dataset_files(label);
+
+      CREATE INDEX IF NOT EXISTS idx_dataset_files_category
+        ON dataset_files(category);
     `);
 
-    // Seed default demo user for instant testing
+    // --------------------------------------------------------
+    // Seed Demo User
+    // --------------------------------------------------------
+
     const demoEmail = 'demo@aura.ai';
-    const checkUser = await client.query('SELECT id, role FROM users WHERE email = $1', [demoEmail]);
+
+    const checkUser = await client.query(
+      'SELECT id, role FROM users WHERE email = $1',
+      [demoEmail]
+    );
+
     if (checkUser.rows.length === 0) {
       const hashedPw = await bcrypt.hash('password123', 10);
-      await client.query(`
-        INSERT INTO users (name, email, password_hash, role)
-        VALUES ('Demo Examiner', $1, $2, 'guest')
-      `, [demoEmail, hashedPw]);
-      logger.info('Default demo user seeded: demo@aura.ai / password123 (role: guest)');
+
+      await client.query(
+        `
+          INSERT INTO users (name, email, password_hash, role)
+          VALUES ('Demo Examiner', $1, $2, 'guest')
+        `,
+        [demoEmail, hashedPw]
+      );
+
+      logger.info(
+        'Default demo user seeded: demo@aura.ai / password123'
+      );
+
     } else if (checkUser.rows[0].role !== 'guest') {
       await client.query(
-        `UPDATE users SET role = 'guest', updated_at = CURRENT_TIMESTAMP WHERE email = $1`,
+        `
+          UPDATE users
+          SET role = 'guest',
+              updated_at = CURRENT_TIMESTAMP
+          WHERE email = $1
+        `,
         [demoEmail]
       );
-      logger.info('Default demo user role safely updated to guest for demo@aura.ai');
+
+      logger.info(
+        'Default demo user role updated to guest.'
+      );
     }
 
-    logger.info('PostgreSQL schema verified and tables ready.');
+    logger.info(
+      'PostgreSQL schema verified and tables ready.'
+    );
+
   } catch (err) {
-    logger.error('Failed to initialize PostgreSQL database', { error: err.message });
+    logger.error('Failed to initialize PostgreSQL database', {
+      error: err.message,
+    });
+
     throw err;
+
   } finally {
-    client.release();
+    if (client) {
+      client.release();
+    }
   }
 }
 
+// ============================================================
+// Module Exports
+// ============================================================
+
 module.exports = {
   pool,
+
   query: (text, params) => pool.query(text, params),
+
   initDatabase,
 };
