@@ -2,7 +2,7 @@
 title Starting Deepfake Audio Detector
 echo ============================================================
 echo   DeepFake Audio Analyzer
-echo   Deepfake Audio Detection & Forensic Spectral Analyzer
+echo   Deepfake Audio Detection ^& Forensic Spectral Analyzer
 echo ============================================================
 echo.
 echo [1/3] Starting Backend API Server (Port 5000)...

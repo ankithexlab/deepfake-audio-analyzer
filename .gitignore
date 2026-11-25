@@ -49,3 +49,9 @@ Thumbs.db
 
 # Exported chat/UI assets - not project source
 Deepfake Audio Analyzer_files/
+
+# Temporary local files
+backend/tempCodeRunnerFile.py
+backend/test_audio.wav
+backend/test_real.wav
+backend/test_sample.mp3
